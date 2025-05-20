@@ -1,6 +1,11 @@
 package testApiWithReqresIn;
 
-import org.junit.Test;
+import io.qameta.allure.*;
+import io.qameta.allure.restassured.AllureRestAssured;
+import io.restassured.RestAssured;
+import jdk.jfr.Description;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import testApiWithReqresIn.lombok.CreateUserRequest;
 import testApiWithReqresIn.lombok.CreateUserResponse;
 import testApiWithReqresIn.lombok.Response;
@@ -8,19 +13,38 @@ import testApiWithReqresIn.lombok.UserData;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-import static io.restassured.RestAssured.*;
+import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.hamcrest.Matchers.hasKey;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class ReqresTestWithLombok extends Specification {
 
-   public static final String EXP_MESSAGE_ERROR = "Missing password";
+    @BeforeEach
+    public void setup() {
+        RestAssured.filters(new AllureRestAssured());
+    }
 
+    @Epic("Epic Name0")
+    @Feature("Feature Name0")
     @Test
+    @Severity(SeverityLevel.CRITICAL)
+    public void someTest() {
+        Allure.step("Начинаем шаг");
+    }
+
+    public static final String EXP_MESSAGE_ERROR = "Missing password";
+   private List<UserData> users;
+   private Map<Integer,UserData> userMap;
+    @Epic("Epic Name")
+    @Feature("Feature Name")
+    @Test
+    @Story("API")
+    @Description("checkAvatarAndIdTest")
     public void checkAvatarAndIdTest() {
         List<UserData> user = given()
                 .spec(requestSpecification)
@@ -41,8 +65,31 @@ public class ReqresTestWithLombok extends Specification {
             assertTrue(avatars.get(i).contains(id.get(i)));
         }
     }
+//экспериментируем с коллекциями Set<Integer>
 
     @Test
+    @Story("API")
+    @Description("testSetCollections")
+    public void testSetCollections() {
+
+        users = given()
+                .spec(requestSpecification)
+                .queryParam("page", "2")
+                .when()
+                .get("/users")
+                .then().log().all()
+                .extract().jsonPath().getList("data", UserData.class);
+
+        Set<Integer> usersId = users.stream()
+                .map(UserData::getId)
+                .collect(Collectors.toSet());
+
+        assertEquals(users.size(), usersId.size());
+    }
+
+    @Test
+    @Story("API")
+    @Description("userRegistrSuccess")
     public void userRegistrSuccess() {
         String expId = "4";
         String expToken = "QpwL5tke4Pnpja7X4";
@@ -63,6 +110,8 @@ public class ReqresTestWithLombok extends Specification {
     }
 
     @Test
+    @Story("API")
+    @Description("checkEmailFieldInResponse")
     public void checkEmailFieldInResponse() {
         Response response = given()
                 .spec(requestSpecification)
@@ -93,10 +142,12 @@ public class ReqresTestWithLombok extends Specification {
     }
 
     @Test
+    @Story("API")
+    @Description("checkEmailFormat")
     public void checkEmailFormat() {
         String emailRegex = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
 
-        List<UserData> users = given()
+        users = given()
                 .spec(requestSpecification)
                 .queryParam("page", "2")
                 .when()
@@ -112,11 +163,13 @@ public class ReqresTestWithLombok extends Specification {
     }
 
     @Test
+    @Story("API")
+    @Description("verifyUserInResponse")
     public void verifyUserInResponse() {
         String expFirst_Name = "Lindsay";
         String expLast_Name = "Ferguson";
 
-        List<UserData> users = given()
+        users = given()
                 .spec(requestSpecification)
                 .queryParam("page", "2")
                 .when()
@@ -130,12 +183,14 @@ public class ReqresTestWithLombok extends Specification {
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("Не найден пользователь с id = " + 8));
 
-        assertEquals("Имя не совпадает:", expFirst_Name, user.getFirst_name());
-        assertEquals("Фамилия не совпадает:", expLast_Name, user.getLast_name());
+        assertEquals(expFirst_Name, user.getFirst_name());
+        assertEquals(expLast_Name, user.getLast_name());
         System.out.println("Проверяем пользователя: " + user);
     }
 
     @Test
+    @Story("API")
+    @Description("verifyResponseStructure")
     public void verifyResponseStructure() {
         given()
                 .spec(requestSpecification)
@@ -158,6 +213,8 @@ public class ReqresTestWithLombok extends Specification {
     }
 
     @Test
+    @Story("API")
+    @Description("checkTextInSupport")
     public void checkTextInSupport() {
         given()
                 .spec(requestSpecification)
@@ -169,7 +226,29 @@ public class ReqresTestWithLombok extends Specification {
                 .body("support.text", equalTo("Tired of writing endless social media content? Let Content Caddy generate it for you."));
     }
 
+    //Тест коллекции Map<String, UserData>
+
     @Test
+    @Story("API")
+    @Description("testMapForUserId8")
+    public void testMapForUserId8() {
+       users = given()
+                .spec(requestSpecification)
+                .queryParam("page", "2")
+                .when()
+                .get("users/")
+                .then().log().all()
+                .extract().jsonPath().getList("data",UserData.class);
+
+         userMap = users.stream()
+                .collect(Collectors.toMap(UserData::getId, u-> u));
+
+        UserData userId8 = userMap.get(8);
+        assertEquals("Lindsay", userId8.getFirst_name());
+    }
+    @Test
+    @Story("API")
+    @Description("findIdByNameAndLastName")
     public void findIdByNameAndLastName() {
         given()
                 .spec(requestSpecification)
@@ -182,6 +261,8 @@ public class ReqresTestWithLombok extends Specification {
     }
 
     @Test
+    @Story("API")
+    @Description("checkSortYear")
     public void checkSortYear() {
         List<Integer> years = given()
                 .spec(requestSpecification)
@@ -198,6 +279,8 @@ public class ReqresTestWithLombok extends Specification {
     }
 
     @Test
+    @Story("API")
+    @Description("singleUserNotFound")
     public void singleUserNotFound() {
         given()
                 .spec(requestSpecification)
@@ -209,6 +292,8 @@ public class ReqresTestWithLombok extends Specification {
     }
 
     @Test
+    @Story("API")
+    @Description("createUserSuccess")
     public void createUserSuccess() {
         String expName = "morpheus";
         String expJob = "leader";
@@ -230,6 +315,8 @@ public class ReqresTestWithLombok extends Specification {
     }
 
     @Test
+    @Story("API")
+    @Description("updateUser")
     public void updateUser() {
         String expName = "morpheus";
         String expJob = "zion resident";
@@ -252,6 +339,8 @@ public class ReqresTestWithLombok extends Specification {
     }
 
     @Test
+    @Story("API")
+    @Description("deleteUser")
     public void deleteUser() {
         given()
                 .spec(requestSpecification)
@@ -262,6 +351,8 @@ public class ReqresTestWithLombok extends Specification {
     }
 
     @Test
+    @Story("API")
+    @Description("registerSuccess")
     public void registerSuccess() {
         String expId = "4";
         String expToken = "QpwL5tke4Pnpja7X4";
@@ -287,6 +378,8 @@ public class ReqresTestWithLombok extends Specification {
     }
 
     @Test
+    @Story("API")
+    @Description("registerUnSuccess")
     public void registerUnSuccess() {
 
 
@@ -307,6 +400,8 @@ public class ReqresTestWithLombok extends Specification {
     }
 
     @Test
+    @Story("API")
+    @Description("successLogin")
     public void successLogin() {
         String expToken = "QpwL5tke4Pnpja7X4";
 
@@ -329,6 +424,8 @@ public class ReqresTestWithLombok extends Specification {
     }
 
     @Test
+    @Story("API")
+    @Description("unSuccessLogin")
     public void unSuccessLogin() {
 
         LoginUnSuccessful unSuccessLogin = LoginUnSuccessful.builder()
